@@ -1,0 +1,40 @@
+#!/bin/bash
+###
+# sconn: helper cli for connecting to docker swarms through docker cloud
+#
+##
+
+function print_eval {
+    CONTAINER_PROXY=$(echo $1 | sed -e 's/[\/\.]/_/g' | xargs -n 1 echo "client_proxy_" | sed -e 's/ //g')
+
+    PORT=$(docker inspect --format='{{(index (index .NetworkSettings.Ports "2375/tcp") 0).HostPort}}' $CONTAINER_PROXY)
+
+    echo "export DOCKER_HOST=127.0.0.1:$PORT";
+    echo "export DOCKER_MACHINE_NAME=$1";
+}
+
+function list_proxies {
+    read -r -a PROXIES <<< $(docker ps -a --filter=name=client_proxy_ --format='{{.Names}}')
+    for i in "${!PROXIES[@]}"
+    do
+        echo "${PROXIES[$i]}" | sed -e 's/client_proxy_//g' | sed -e 's/_/\//g'
+    done
+}
+
+function add_proxies {
+    unset DOCKER_HOST;
+    unset DOCKER_MACHINE_NAME;
+    docker run --rm -ti -v /var/run/docker.sock:/var/run/docker.sock -e DOCKER_HOST dockercloud/client $1
+}
+
+case $1 in
+    "ls")
+        list_proxies
+        ;;
+    "add")
+        add_proxies $2
+        ;;
+    *)
+        print_eval $@
+        ;;
+esac;

@@ -1,0 +1,26 @@
+#!/bin/bash
+
+###
+# swarmproxy: deprecated for sconn
+#
+##
+
+set -e
+
+read -r -a PROXIES <<< $(docker ps -a --filter=name=client_proxy_ --format='{{.Names}}')
+
+# PROXIES=$(docker ps --filter=name=client_proxy_ --format='{{.Names}}')
+
+echo "Available proxies:"
+for i in "${!PROXIES[@]}"
+do
+    echo "$i) ${PROXIES[$i]}"
+done
+
+
+read -p 'Select: ' index
+
+CONTAINER_NAME=${PROXIES[$index]}
+
+echo "Spawning a new shell! Use exit to return";
+eval "DOCKER_HOST=127.0.0.1:$(docker inspect --format='{{(index (index .NetworkSettings.Ports "2375/tcp") 0).HostPort}}' $CONTAINER_NAME) DOCKER_MACHINE_NAME=$CONTAINER_NAME /bin/zsh"
